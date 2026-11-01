@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Achei",
+    "slug": "achei-mobile-scaffold",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "achei",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/images/achei-icon.png",
+    "ios": {
+      "bundleIdentifier": "tech.praesens.achei",
+      "icon": "./assets/images/achei-icon.png"
+    },
+    "android": {
+      "package": "tech.praesens.achei",
+      "adaptiveIcon": {
+        "backgroundColor": "#4A1B0C",
+        "foregroundImage": "./assets/images/achei-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/achei-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F9F6F1",
+          "image": "./assets/images/achei-icon.png",
+          "imageWidth": 96
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
