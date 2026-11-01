@@ -4,7 +4,7 @@ Aplicativo móvel do Achei, mantido em repositório separado do frontend web e d
 
 ## Estado inicial
 
-- Projeto Expo SDK 56 criado com rotas e identidade visual inicial do Achei.
+- Projeto Expo SDK 58 criado com rotas e identidade visual inicial do Achei.
 - IDs nativos: `tech.praesens.achei` (Android e iOS).
 - A integração móvel com Clerk e as telas funcionais do inventário ainda serão adicionadas.
 - O backend continua sendo a API existente; este repositório não cria outro banco nem outra API.

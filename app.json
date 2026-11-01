@@ -1,13 +1,12 @@
 {
   "expo": {
     "name": "Achei",
-    "slug": "achei-mobile-scaffold",
+    "slug": "achei-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/achei-icon.png",
     "scheme": "achei",
     "userInterfaceStyle": "light",
-    "icon": "./assets/images/achei-icon.png",
     "ios": {
       "bundleIdentifier": "tech.praesens.achei",
       "icon": "./assets/images/achei-icon.png"
