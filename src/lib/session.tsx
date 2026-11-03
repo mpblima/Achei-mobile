@@ -2,11 +2,12 @@ import { createContext, useContext } from 'react';
 import type { Tenant } from './types';
 
 export type MobileSession = {
-  token: string | null;
+  token: (() => Promise<string | null>) | null;
   userId: string | null;
   email: string;
   imageUrl: string;
   tenant: Tenant | null;
+  tenantError: string;
   setTenant: (tenant: Tenant | null) => void;
   setProfileImage: (uri: string) => Promise<string>;
 };
@@ -17,6 +18,7 @@ export const MobileSessionContext = createContext<MobileSession>({
   email: '',
   imageUrl: '',
   tenant: null,
+  tenantError: '',
   setTenant: () => undefined,
   setProfileImage: async () => { throw new Error('A configuração do Clerk ainda não está pronta.'); },
 });

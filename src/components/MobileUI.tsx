@@ -1,11 +1,13 @@
 import type { PropsWithChildren, ReactNode } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { theme } from '@/lib/theme';
 
 export function Page({ title, subtitle, children, action }: PropsWithChildren<{ title: string; subtitle?: string; action?: ReactNode }>) {
-  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-    <View style={styles.top}><Pressable onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{action}</View>
+  const { width } = useWindowDimensions();
+  const horizontalPadding = width < 360 ? 16 : width < 600 ? 20 : 28;
+  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={[styles.page, { maxWidth: Math.min(width, 760), paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
+    <View style={styles.top}><Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.canGoBack() ? router.back() : router.replace('/')}><Text style={styles.back}>‹</Text></Pressable><View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{action}</View>
     {children}
   </ScrollView></SafeAreaView>;
 }

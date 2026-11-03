@@ -10,9 +10,13 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, token: string, workspaceId?: string, init: RequestInit = {}): Promise<T> {
+export type AccessToken = string | (() => Promise<string | null>);
+
+export async function apiRequest<T>(path: string, token: AccessToken, workspaceId?: string, init: RequestInit = {}): Promise<T> {
+  const accessToken = typeof token === 'function' ? await token() : token;
+  if (!accessToken) throw new ApiError('Sua sessão expirou. Entre novamente.', 401);
   const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('Authorization', `Bearer ${accessToken}`);
   headers.set('Content-Type', 'application/json');
   if (workspaceId) headers.set('X-Workspace-ID', workspaceId);
 

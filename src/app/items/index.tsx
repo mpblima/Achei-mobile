@@ -13,13 +13,14 @@ export default function ItemsScreen() {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const workspaceId = tenant?.id;
   const load = useCallback(async () => {
     if (!token) return;
     setBusy(true);
-    try { setItems(await apiRequest<InventoryItem[]>('/items', token, tenant?.id)); setError(''); }
+    try { setItems(await apiRequest<InventoryItem[]>('/items', token, workspaceId)); setError(''); }
     catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível carregar os itens.'); }
     finally { setBusy(false); }
-  }, [token, tenant]);
+  }, [token, workspaceId]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   const filtered = items.filter(item => `${item.name} ${item.category} ${item.location} ${item.container} ${item.code}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   return <Page title="Itens" subtitle={`${items.length} itens no espaço`} action={<Pressable onPress={() => router.push('/items/new')}><Text style={styles.add}>＋</Text></Pressable>}>

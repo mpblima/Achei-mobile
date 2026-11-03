@@ -12,13 +12,14 @@ export default function RequestsScreen() {
   const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const workspaceId = tenant?.id;
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    try { setRequests(await apiRequest<LoanRequest[]>('/loan-requests', token, tenant?.id)); setError(''); }
+    try { setRequests(await apiRequest<LoanRequest[]>('/loan-requests', token, workspaceId)); setError(''); }
     catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível carregar seus pedidos.'); }
     finally { setLoading(false); }
-  }, [token, tenant]);
+  }, [token, workspaceId]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   return <Page title="Meus pedidos" subtitle="O administrador autoriza a retirada pelo Achei Web.">
     {loading ? <ActivityIndicator color={theme.accent} /> : null}

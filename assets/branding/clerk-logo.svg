@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="180" viewBox="0 0 760 180">
+  <g transform="translate(20 26) scale(2)">
+    <rect width="64" height="64" rx="16" fill="#4A1B0C"/>
+    <circle cx="27" cy="27" r="15" fill="none" stroke="#FCE9E1" stroke-width="6"/>
+    <path d="m38 38 14 14" fill="none" stroke="#FCE9E1" stroke-linecap="round" stroke-width="7"/>
+    <path d="m20 27 5 5 10-11" fill="none" stroke="#E99A77" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  </g>
+  <text x="178" y="121" font-family="Arial, sans-serif" font-size="82" font-weight="700" letter-spacing="-3" fill="#4A1B0C">Achei</text>
+  <circle cx="414" cy="114" r="7" fill="#D85A30"/>
+</svg>

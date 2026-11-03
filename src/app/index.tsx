@@ -1,102 +1,127 @@
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
-
-const colors = {
-  background: '#F9F6F1',
-  surface: '#FFFFFF',
-  ink: '#4A1B0C',
-  muted: '#876B5E',
-  accent: '#B9482D',
-  border: '#EADFD6',
-  pale: '#FCE9E1',
-};
+import { ActivityIndicator, Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { router } from 'expo-router';
+import { useAuth } from '@clerk/expo';
+import { Action, Notice } from '@/components/MobileUI';
+import { AuthActions } from '../components/AuthActions';
+import { useMobileSession } from '@/lib/session';
+import { theme } from '@/lib/theme';
 
 export default function HomeScreen() {
+  const { width, height } = useWindowDimensions();
+  const { isSignedIn, signOut } = useAuth();
+  const { email, imageUrl, tenant, tenantError } = useMobileSession();
+  const horizontalPadding = width < 360 ? 16 : width < 600 ? 22 : 32;
+
+  async function logOut() {
+    try {
+      await signOut();
+    } catch {
+      Alert.alert('Não foi possível sair', 'Tente novamente em instantes.');
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { maxWidth: Math.min(width, 720), paddingHorizontal: horizontalPadding, paddingTop: height < 680 ? 14 : 22 }]}>
         <View style={styles.brandRow}>
-          <View style={styles.mark}>
-            <Text style={styles.markText}>A</Text>
-          </View>
+          <View style={styles.mark}><Text style={styles.markText}>A</Text></View>
           <Text style={styles.brand}>Achei<Text style={styles.period}>.</Text></Text>
+          {isSignedIn ? <Pressable onPress={() => router.push('/profile')} style={styles.avatar}>
+            {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.avatarImage} /> : <Text style={styles.avatarFallback}>{email.slice(0, 1).toUpperCase() || 'A'}</Text>}
+          </Pressable> : null}
         </View>
 
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SUA CASA, NO SEU CONTROLE</Text>
-          <Text style={styles.title}>Você sabe onde está.</Text>
-          <Text style={styles.titleAccent}>Agora no celular.</Text>
-          <Text style={styles.description}>
-            Um inventário simples para lembrar onde guardou cada coisa e acompanhar o que sai e volta.
-          </Text>
-        </View>
+        {isSignedIn ? (
+          <View style={[styles.signedIn, { paddingTop: height < 680 ? 24 : 46 }]}>
+            <Text style={styles.eyebrow}>SEU INVENTÁRIO</Text>
+            <Text style={styles.title}>Olá, {tenant?.brand_name || tenant?.name || email.split('@')[0] || 'tudo bem'}.</Text>
+            <Text style={styles.description}>Encontre seus itens e acompanhe o que sai e volta.</Text>
+            {tenantError ? <Notice>{tenantError}</Notice> : null}
+            {!tenant && !tenantError ? <View style={styles.loading}><ActivityIndicator color={theme.accent} /><Text style={styles.muted}>Abrindo seu espaço…</Text></View> : null}
 
-        <View style={styles.previewCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardEyebrow}>SEU ESPAÇO</Text>
-              <Text style={styles.cardTitle}>Tudo em ordem</Text>
+            <View style={styles.actions}>
+              <Action label="Pesquisar itens" onPress={() => router.push('/items')} />
+              <Action label="Cadastrar item" secondary onPress={() => router.push('/items/new')} />
+              <Action label="Ler QR para empréstimo" secondary onPress={() => router.push('/scan')} />
+              <Action label="Meus pedidos" secondary onPress={() => router.push('/requests')} />
             </View>
-            <View style={styles.statusDot} />
+            <Pressable onPress={() => void logOut()} style={styles.signOut}><Text style={styles.signOutText}>Sair da conta</Text></Pressable>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.previewRow}>
-            <View style={[styles.iconTile, { backgroundColor: colors.pale }]}>
-              <Text style={styles.tileGlyph}>⌂</Text>
+        ) : (
+          <>
+            <View style={[styles.hero, { paddingTop: height < 680 ? 24 : 54, paddingBottom: height < 680 ? 16 : 32 }]}>
+              <Text style={styles.eyebrow}>SUA CASA, NO SEU CONTROLE</Text>
+              <Text style={styles.title}>Você sabe onde está.</Text>
+              <Text style={styles.titleAccent}>Agora no celular.</Text>
+              <Text style={styles.description}>Um inventário simples para lembrar onde guardou cada coisa e acompanhar o que sai e volta.</Text>
             </View>
-            <View style={styles.previewCopy}>
-              <Text style={styles.previewTitle}>Cada coisa no seu lugar</Text>
-              <Text style={styles.previewSubtitle}>Itens, locais e movimentações</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </View>
-          <View style={styles.previewRow}>
-            <View style={[styles.iconTile, { backgroundColor: '#F4EBD8' }]}>
-              <Text style={styles.tileGlyph}>✓</Text>
-            </View>
-            <View style={styles.previewCopy}>
-              <Text style={styles.previewTitle}>Compartilhe com quem mora</Text>
-              <Text style={styles.previewSubtitle}>Seu espaço continua privado</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </View>
-        </View>
 
-        <View style={styles.footer}>
-          <View style={styles.footerLine} />
-          <Text style={styles.footerText}>ORGANIZE. ACHE. COMPARTILHE.</Text>
-        </View>
-      </View>
+            <View style={styles.previewCard}>
+              <View style={styles.cardHeader}>
+                <View><Text style={styles.cardEyebrow}>SEU ESPAÇO</Text><Text style={styles.cardTitle}>Tudo em ordem</Text></View>
+                <View style={styles.statusDot} />
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.previewRow}><View style={[styles.iconTile, { backgroundColor: theme.pale }]}><Text style={styles.tileGlyph}>⌂</Text></View><View style={styles.previewCopy}><Text style={styles.previewTitle}>Cada coisa no seu lugar</Text><Text style={styles.previewSubtitle}>Itens, locais e movimentações</Text></View><Text style={styles.chevron}>›</Text></View>
+              <View style={styles.previewRow}><View style={[styles.iconTile, { backgroundColor: '#F4EBD8' }]}><Text style={styles.tileGlyph}>✓</Text></View><View style={styles.previewCopy}><Text style={styles.previewTitle}>Compartilhe com quem mora</Text><Text style={styles.previewSubtitle}>Seu espaço continua privado</Text></View><Text style={styles.chevron}>›</Text></View>
+            </View>
+
+            <View style={styles.auth}>
+              <Text style={styles.authTitle}>Acesse seu espaço</Text>
+              <Text style={styles.authDescription}>Entre com sua conta ou crie um inventário pessoal.</Text>
+              <AuthActions />
+              <Text style={styles.helper}>O Clerk exibirá os métodos habilitados para esta aplicação, como Google ou código por e-mail.</Text>
+            </View>
+          </>
+        )}
+
+        <View style={styles.footer}><View style={styles.footerLine} /><Text style={styles.footerText}>ORGANIZE. ACHE. COMPARTILHE.</Text></View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 26, paddingTop: 22, paddingBottom: 20 },
+  safeArea: { flex: 1, backgroundColor: theme.background },
+  container: { flexGrow: 1, width: '100%', alignSelf: 'center', paddingBottom: 24 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  mark: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  markText: { color: '#FFFFFF', fontSize: 19, fontWeight: '800' },
-  brand: { color: colors.ink, fontSize: 22, fontWeight: '800', letterSpacing: -0.8 },
-  period: { color: colors.accent },
-  hero: { flex: 1, justifyContent: 'center', paddingTop: 20, paddingBottom: 28 },
-  eyebrow: { color: colors.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 18 },
-  title: { color: colors.ink, fontSize: 40, lineHeight: 45, fontWeight: '800', letterSpacing: -1.8 },
-  titleAccent: { color: colors.accent, fontSize: 36, lineHeight: 42, fontWeight: '800', letterSpacing: -1.6, marginTop: 1 },
-  description: { color: colors.muted, fontSize: 16, lineHeight: 25, marginTop: 20, maxWidth: 430 },
-  previewCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 22, padding: 20, shadowColor: '#4A1B0C', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 17 },
-  cardEyebrow: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
-  cardTitle: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: 5 },
+  mark: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  markText: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
+  brand: { color: theme.ink, fontSize: 24, fontWeight: '800', letterSpacing: -0.8, flex: 1 },
+  period: { color: theme.accent },
+  avatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: theme.pale, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarFallback: { color: theme.ink, fontSize: 15, fontWeight: '800' },
+  hero: { flex: 1, justifyContent: 'center' },
+  eyebrow: { color: theme.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, marginBottom: 16 },
+  title: { color: theme.ink, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1.4 },
+  titleAccent: { color: theme.accent, fontSize: 32, lineHeight: 38, fontWeight: '800', letterSpacing: -1.2, marginTop: 1 },
+  description: { color: theme.muted, fontSize: 15, lineHeight: 23, marginTop: 16 },
+  previewCard: { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: 22, padding: 18, shadowColor: theme.ink, shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 15 },
+  cardEyebrow: { color: theme.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  cardTitle: { color: theme.ink, fontSize: 18, fontWeight: '800', marginTop: 5 },
   statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#77A27A' },
-  divider: { height: 1, backgroundColor: colors.border },
-  previewRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 16, gap: 12 },
+  divider: { height: 1, backgroundColor: theme.border },
+  previewRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 14, gap: 12 },
   iconTile: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  tileGlyph: { color: colors.accent, fontSize: 21, fontWeight: '700' },
+  tileGlyph: { color: theme.accent, fontSize: 21, fontWeight: '700' },
   previewCopy: { flex: 1 },
-  previewTitle: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  previewSubtitle: { color: colors.muted, fontSize: 11, marginTop: 4 },
-  chevron: { color: colors.accent, fontSize: 26, lineHeight: 30 },
+  previewTitle: { color: theme.ink, fontSize: 13, fontWeight: '700' },
+  previewSubtitle: { color: theme.muted, fontSize: 11, marginTop: 4 },
+  chevron: { color: theme.accent, fontSize: 26, lineHeight: 30 },
+  auth: { marginTop: 28, gap: 11, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 20, padding: 18 },
+  authTitle: { color: theme.ink, fontSize: 18, fontWeight: '800' },
+  authDescription: { color: theme.muted, fontSize: 13, lineHeight: 19, marginBottom: 3 },
+  helper: { color: theme.muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
+  error: { color: '#A32F21', fontSize: 12, lineHeight: 18 },
+  signedIn: { flex: 1, gap: 14 },
+  actions: { gap: 10, marginTop: 10 },
+  loading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  muted: { color: theme.muted, fontSize: 13 },
+  signOut: { alignSelf: 'center', padding: 12 },
+  signOutText: { color: theme.muted, fontSize: 13, fontWeight: '700' },
   footer: { alignItems: 'center', gap: 12, paddingTop: 24 },
-  footerLine: { height: 1, alignSelf: 'stretch', backgroundColor: colors.border },
-  footerText: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1.7 },
+  footerLine: { height: 1, alignSelf: 'stretch', backgroundColor: theme.border },
+  footerText: { color: theme.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1.7 },
 });
