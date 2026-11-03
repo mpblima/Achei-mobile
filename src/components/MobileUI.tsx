@@ -1,27 +1,31 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
-import { theme } from '@/lib/theme';
+import { theme, useBrandColors } from '@/lib/theme';
 
 export function Page({ title, subtitle, children, action }: PropsWithChildren<{ title: string; subtitle?: string; action?: ReactNode }>) {
   const { width } = useWindowDimensions();
+  const brand = useBrandColors();
   const horizontalPadding = width < 360 ? 16 : width < 600 ? 20 : 28;
-  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={[styles.page, { maxWidth: Math.min(width, 760), paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
-    <View style={styles.top}><Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.canGoBack() ? router.back() : router.replace('/')}><Text style={styles.back}>‹</Text></Pressable><View style={styles.heading}><Text style={styles.title}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{action}</View>
+  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><ScrollView contentContainerStyle={[styles.page, { maxWidth: Math.min(width, 760), paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
+    <View style={styles.top}><Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.canGoBack() ? router.back() : router.replace('/')}><Text style={[styles.back, { color: brand.primary }]}>‹</Text></Pressable><View style={styles.heading}><Text style={[styles.title, { color: brand.primary }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{action}</View>
     {children}
   </ScrollView></SafeAreaView>;
 }
 
 export function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: { label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; keyboardType?: 'default' | 'numeric' | 'phone-pad'; multiline?: boolean }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#A69083" keyboardType={keyboardType} multiline={multiline} style={[styles.input, multiline && styles.multiline]} /></View>;
+  const brand = useBrandColors();
+  return <View style={styles.field}><Text style={[styles.label, { color: brand.primary }]}>{label}</Text><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#A69083" keyboardType={keyboardType} multiline={multiline} style={[styles.input, { borderColor: brand.accent }, multiline && styles.multiline]} /></View>;
 }
 
 export function Action({ label, onPress, secondary, disabled }: { label: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
-  return <Pressable disabled={disabled} onPress={onPress} style={[styles.button, secondary && styles.secondary, disabled && styles.disabled]}><Text style={[styles.buttonText, secondary && styles.secondaryText]}>{label}</Text></Pressable>;
+  const brand = useBrandColors();
+  return <Pressable disabled={disabled} onPress={onPress} style={[styles.button, { backgroundColor: secondary ? theme.pale : brand.accent, borderColor: secondary ? brand.accent : brand.accent }, secondary && styles.secondary, disabled && styles.disabled]}><Text style={[styles.buttonText, secondary && styles.secondaryText, secondary && { color: brand.primary }]}>{label}</Text></Pressable>;
 }
 
 export function Notice({ children }: PropsWithChildren) {
-  return <View style={styles.notice}><Text style={styles.noticeText}>{children}</Text></View>;
+  const brand = useBrandColors();
+  return <View style={[styles.notice, { borderColor: brand.accent, borderWidth: 1 }]}><Text style={[styles.noticeText, { color: brand.primary }]}>{children}</Text></View>;
 }
 
 const styles = StyleSheet.create({

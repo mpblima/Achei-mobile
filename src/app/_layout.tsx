@@ -15,6 +15,8 @@ function SessionBridge() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const { user } = useUser();
   const [tenantEntry, setTenantEntry] = useState<{ userId: string; tenant: Tenant | null; error: string } | null>(null);
+  const [workspaceChoices, setWorkspaceChoices] = useState<Tenant[]>([]);
+  const [workspacesLoaded, setWorkspacesLoaded] = useState(false);
   const getTokenRef = useRef(getToken);
   const accessToken = useCallback(() => getTokenRef.current(), []);
   const setTenant = useCallback((nextTenant: Tenant | null) => {
@@ -29,30 +31,17 @@ function SessionBridge() {
     if (!isLoaded || !isSignedIn || !userId) return;
 
     let cancelled = false;
-    void apiRequest<{
-      workspace_id: string;
-      workspace_name: string;
-      workspace_type: 'personal' | 'business';
-      role: 'admin' | 'member';
-      branding: { name: string; logo_url: string; primary_color: string; accent_color: string };
-    }>('/me', accessToken).then((me) => {
+    void apiRequest<Tenant[]>('/mobile/workspaces', accessToken).then((workspaces) => {
       if (cancelled) return;
-      setTenantEntry({
-        userId,
-        tenant: {
-          id: me.workspace_id,
-          name: me.workspace_name,
-          type: me.workspace_type,
-          role: me.role,
-          brand_name: me.branding.name,
-          brand_logo_url: me.branding.logo_url,
-          brand_primary_color: me.branding.primary_color,
-          brand_accent_color: me.branding.accent_color,
-        },
-        error: '',
-      });
+      setWorkspaceChoices(workspaces);
+      setWorkspacesLoaded(true);
+      setTenantEntry({ userId, tenant: workspaces.length === 1 ? workspaces[0] : null, error: '' });
     }).catch((error: unknown) => {
-      if (!cancelled) setTenantEntry({ userId, tenant: null, error: error instanceof Error ? error.message : 'Não foi possível abrir seu espaço.' });
+      if (!cancelled) {
+        setWorkspaceChoices([]);
+        setWorkspacesLoaded(true);
+        setTenantEntry({ userId, tenant: null, error: error instanceof Error ? error.message : 'Não foi possível localizar seus espaços.' });
+      }
     });
     return () => { cancelled = true; };
   }, [accessToken, isLoaded, isSignedIn, userId]);
@@ -70,10 +59,12 @@ function SessionBridge() {
     email: user?.primaryEmailAddress?.emailAddress ?? '',
     imageUrl: user?.imageUrl ?? '',
     tenant,
+    workspaces: isSignedIn && tenantEntry?.userId === userId ? workspaceChoices : [],
+    workspacesLoaded: Boolean(isSignedIn && tenantEntry?.userId === userId && workspacesLoaded),
     tenantError,
     setTenant,
     setProfileImage,
-  }), [accessToken, isLoaded, isSignedIn, setProfileImage, setTenant, tenant, tenantError, user, userId]);
+  }), [accessToken, isLoaded, isSignedIn, setProfileImage, setTenant, tenant, tenantError, user, userId, workspaceChoices, workspacesLoaded, tenantEntry]);
 
   if (!isLoaded) {
     return <View style={styles.loading}><ActivityIndicator color={theme.accent} /><Text style={styles.loadingText}>Preparando seu espaço…</Text></View>;

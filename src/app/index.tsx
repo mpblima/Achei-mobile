@@ -1,15 +1,16 @@
-import { ActivityIndicator, Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@clerk/expo';
 import { Action, Notice } from '@/components/MobileUI';
 import { AuthActions } from '../components/AuthActions';
 import { useMobileSession } from '@/lib/session';
-import { theme } from '@/lib/theme';
+import { theme, useBrandColors } from '@/lib/theme';
 
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
   const { isSignedIn, signOut } = useAuth();
-  const { email, imageUrl, tenant, tenantError } = useMobileSession();
+  const { email, imageUrl, tenant, tenantError, workspaces, workspacesLoaded, setTenant } = useMobileSession();
+  const brand = useBrandColors();
   const horizontalPadding = width < 360 ? 16 : width < 600 ? 22 : 32;
 
   async function logOut() {
@@ -24,8 +25,8 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={[styles.container, { maxWidth: Math.min(width, 720), paddingHorizontal: horizontalPadding, paddingTop: height < 680 ? 14 : 22 }]}>
         <View style={styles.brandRow}>
-          <View style={styles.mark}><Text style={styles.markText}>A</Text></View>
-          <Text style={styles.brand}>Achei<Text style={styles.period}>.</Text></Text>
+          {tenant?.brand_logo_url ? <Image source={{ uri: tenant.brand_logo_url }} style={styles.brandLogo} /> : <View style={[styles.mark, { backgroundColor: brand.primary }]}><Text style={styles.markText}>A</Text></View>}
+          <Text style={[styles.brand, { color: brand.primary }]}>{tenant?.brand_name || 'Achei'}<Text style={[styles.period, { color: brand.accent }]}>.</Text></Text>
           {isSignedIn ? <Pressable onPress={() => router.push('/profile')} style={styles.avatar}>
             {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.avatarImage} /> : <Text style={styles.avatarFallback}>{email.slice(0, 1).toUpperCase() || 'A'}</Text>}
           </Pressable> : null}
@@ -33,18 +34,29 @@ export default function HomeScreen() {
 
         {isSignedIn ? (
           <View style={[styles.signedIn, { paddingTop: height < 680 ? 24 : 46 }]}>
-            <Text style={styles.eyebrow}>SEU INVENTÁRIO</Text>
-            <Text style={styles.title}>Olá, {tenant?.brand_name || tenant?.name || email.split('@')[0] || 'tudo bem'}.</Text>
+            {tenant ? <>
+            <Text style={[styles.eyebrow, { color: brand.accent }]}>SEU INVENTÁRIO</Text>
+            <Text style={[styles.title, { color: brand.primary }]}>Olá, {tenant.brand_name || tenant.name || email.split('@')[0] || 'tudo bem'}.</Text>
             <Text style={styles.description}>Encontre seus itens e acompanhe o que sai e volta.</Text>
-            {tenantError ? <Notice>{tenantError}</Notice> : null}
-            {!tenant && !tenantError ? <View style={styles.loading}><ActivityIndicator color={theme.accent} /><Text style={styles.muted}>Abrindo seu espaço…</Text></View> : null}
 
             <View style={styles.actions}>
               <Action label="Pesquisar itens" onPress={() => router.push('/items')} />
               <Action label="Cadastrar item" secondary onPress={() => router.push('/items/new')} />
               <Action label="Ler QR para empréstimo" secondary onPress={() => router.push('/scan')} />
               <Action label="Meus pedidos" secondary onPress={() => router.push('/requests')} />
+              {workspaces.length > 1 ? <Action label="Trocar espaço" secondary onPress={() => setTenant(null)} /> : null}
             </View>
+            </> : <View style={styles.workspacePicker}>
+              {tenantError ? <Notice>{tenantError} Confira sua conexão e tente entrar novamente.</Notice> : !workspacesLoaded ? <View style={styles.loading}><ActivityIndicator color={brand.accent} /><Text style={styles.muted}>Localizando seus espaços…</Text></View> : workspaces.length === 0 ? <>
+                <Text style={[styles.title, { color: brand.primary }]}>Conclua seu primeiro acesso no Achei Web</Text>
+                <Text style={styles.description}>No celular você entra em uma conta já existente. Para criar seu espaço pessoal ou aceitar um convite, entre primeiro pelo Achei Web.</Text>
+                <Action label="Abrir Achei Web" onPress={() => void Linking.openURL('https://achei.praesens.tech')} />
+              </> : <>
+                <Text style={[styles.title, { color: brand.primary }]}>Escolha seu espaço</Text>
+                <Text style={styles.description}>Selecione o inventário que deseja abrir.</Text>
+                {workspaces.map((workspace) => <Action key={workspace.id} label={workspace.brand_name || workspace.name} onPress={() => setTenant(workspace)} secondary />)}
+              </>}
+            </View>}
             <Pressable onPress={() => void logOut()} style={styles.signOut}><Text style={styles.signOutText}>Sair da conta</Text></Pressable>
           </View>
         ) : (
@@ -68,9 +80,9 @@ export default function HomeScreen() {
 
             <View style={styles.auth}>
               <Text style={styles.authTitle}>Acesse seu espaço</Text>
-              <Text style={styles.authDescription}>Entre com sua conta ou crie um inventário pessoal.</Text>
+              <Text style={styles.authDescription}>Entre com a conta que você já criou no Achei Web.</Text>
               <AuthActions />
-              <Text style={styles.helper}>O Clerk exibirá os métodos habilitados para esta aplicação, como Google ou código por e-mail.</Text>
+              <Text style={styles.helper}>Se você recebeu um convite, entre primeiro pelo Achei Web para aceitá-lo. Depois, use a mesma conta aqui.</Text>
             </View>
           </>
         )}
@@ -86,6 +98,7 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, width: '100%', alignSelf: 'center', paddingBottom: 24 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   mark: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 42, height: 42, resizeMode: 'contain' },
   markText: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
   brand: { color: theme.ink, fontSize: 24, fontWeight: '800', letterSpacing: -0.8, flex: 1 },
   period: { color: theme.accent },
@@ -117,6 +130,7 @@ const styles = StyleSheet.create({
   error: { color: '#A32F21', fontSize: 12, lineHeight: 18 },
   signedIn: { flex: 1, gap: 14 },
   actions: { gap: 10, marginTop: 10 },
+  workspacePicker: { gap: 12, paddingTop: 32 },
   loading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   muted: { color: theme.muted, fontSize: 13 },
   signOut: { alignSelf: 'center', padding: 12 },
