@@ -2,7 +2,7 @@
   "expo": {
     "name": "Achei",
     "slug": "achei-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/achei-icon.png",
     "scheme": "achei",
@@ -34,7 +34,15 @@
         }
       ],
       "expo-secure-store",
-      "@clerk/expo"
+      "@clerk/expo",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
