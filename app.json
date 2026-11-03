@@ -32,7 +32,8 @@
           "image": "./assets/images/achei-icon.png",
           "imageWidth": 96
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
