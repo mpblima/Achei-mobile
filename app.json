@@ -37,7 +37,7 @@
         "expo-image-picker",
         {
           "cameraPermission": "O Achei usa a câmera para fotografar itens.",
-          "photosPermission": "O Achei acessa suas fotos para configurar sua imagem de perfil.",
+          "photosPermission": "O Achei acessa suas fotos para adicionar imagens aos itens e configurar sua imagem de perfil.",
           "microphonePermission": false
         }
       ],

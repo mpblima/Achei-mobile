@@ -50,10 +50,22 @@ export default function NewItemScreen() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) { setError('Permita o acesso à câmera para fotografar o item.'); return; }
     try {
-      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.75 });
+      // Leave the crop ratio open so Android's native editor lets the user
+      // choose the framing and zoom before we normalize the image.
+      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.9 });
       if (result.canceled) return;
       setPhotoDataURL(await preparePhoto(result.assets[0].uri));
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível tirar a foto.'); }
+  }
+  async function choosePhoto() {
+    setError('');
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) { setError('Permita o acesso às fotos para escolher a imagem do item.'); return; }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.9 });
+      if (result.canceled) return;
+      setPhotoDataURL(await preparePhoto(result.assets[0].uri));
+    } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível escolher a foto.'); }
   }
   async function save() {
     if (!token) return;
@@ -84,7 +96,7 @@ export default function NewItemScreen() {
     <Field label="Nome do item" value={name} onChangeText={setName} placeholder="Ex.: Copos de vidro" />
     <Field label="Categoria" value={category} onChangeText={setCategory} placeholder="Ex.: Cozinha" />
     <Field label="Quantidade" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="1" />
-    <View style={styles.block}><Text style={styles.label}>Foto do item (opcional)</Text>{photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="cover" /> : null}<Action label={photoDataURL ? 'Tirar outra foto' : 'Tirar foto com a câmera'} onPress={() => void takePhoto()} secondary /></View>
+    <View style={styles.block}><Text style={styles.label}>Foto do item (opcional)</Text>{photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="contain" /> : null}<Text style={styles.helper}>Ajuste o zoom e escolha o enquadramento antes de usar a foto.</Text><Action label={photoDataURL ? 'Tirar outra foto' : 'Tirar foto com a câmera'} onPress={() => void takePhoto()} secondary /><Action label="Escolher foto da galeria" onPress={() => void choosePhoto()} secondary /></View>
     <View style={styles.block}><Text style={styles.label}>Local</Text><View style={styles.options}>{rooms.map(loc => <Pressable key={loc.id} onPress={() => setLocationID(loc.id)} style={[styles.option, locationID === loc.id && styles.selected]}><Text style={[styles.optionText, locationID === loc.id && styles.selectedText]}>{loc.name}</Text></Pressable>)}</View></View>
     <View style={styles.block}><Text style={styles.label}>Recipiente (opcional)</Text><View style={styles.options}>{containers.map(loc => <Pressable key={loc.id} onPress={() => setContainerID(containerID === loc.id ? '' : loc.id)} style={[styles.option, containerID === loc.id && styles.selected]}><Text style={[styles.optionText, containerID === loc.id && styles.selectedText]}>{loc.name}</Text></Pressable>)}</View><Text style={styles.helper}>As etiquetas por item são opcionais. Você também pode identificar apenas um recipiente.</Text></View>
     </> : <View style={styles.reviewCard}>
