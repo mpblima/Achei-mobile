@@ -2,7 +2,7 @@
   "expo": {
     "name": "Achei",
     "slug": "achei-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/achei-icon.png",
     "scheme": "achei",
@@ -31,6 +31,14 @@
           "backgroundColor": "#F9F6F1",
           "image": "./assets/images/achei-icon.png",
           "imageWidth": 96
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Achei usa a câmera para fotografar itens.",
+          "photosPermission": "O Achei acessa suas fotos para configurar sua imagem de perfil.",
+          "microphonePermission": false
         }
       ],
       "expo-secure-store",
