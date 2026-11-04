@@ -44,3 +44,6 @@ example
 # generated native folders
 /ios
 /android
+.eas-build-work/
+.eas-build-work-*/
+Achei-Android*.apk

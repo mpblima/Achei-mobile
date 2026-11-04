@@ -29,6 +29,7 @@ export default function NewItemScreen() {
   const [containerID, setContainerID] = useState('');
   const [photoDataURL, setPhotoDataURL] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => { if (token) void apiRequest<InventoryLocation[]>('/locations', token, tenant?.id).then(setLocations).catch(e => setError(e.message)); }, [token, tenant?.id]);
   useEffect(() => {
@@ -70,15 +71,36 @@ export default function NewItemScreen() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível cadastrar o item.'); }
     finally { setSaving(false); }
   }
-  return <Page title="Cadastrar item" subtitle="Registre o que existe no tenant e onde está guardado.">
+  function review() {
+    const amount = Number(quantity);
+    if (!name.trim() || !Number.isInteger(amount) || amount < 1) { setError('Informe o nome e uma quantidade inteira válida.'); return; }
+    setError('');
+    setReviewing(true);
+  }
+  const selectedLocation = locations.find(loc => loc.id === locationID);
+  const selectedContainer = locations.find(loc => loc.id === containerID);
+  return <Page title={reviewing ? 'Revisar cadastro' : 'Cadastrar item'} subtitle={reviewing ? 'Confira os dados antes de salvar o item.' : 'Registre o que existe no tenant e onde está guardado.'}>
+    {!reviewing ? <>
     <Field label="Nome do item" value={name} onChangeText={setName} placeholder="Ex.: Copos de vidro" />
     <Field label="Categoria" value={category} onChangeText={setCategory} placeholder="Ex.: Cozinha" />
     <Field label="Quantidade" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="1" />
     <View style={styles.block}><Text style={styles.label}>Foto do item (opcional)</Text>{photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="cover" /> : null}<Action label={photoDataURL ? 'Tirar outra foto' : 'Tirar foto com a câmera'} onPress={() => void takePhoto()} secondary /></View>
     <View style={styles.block}><Text style={styles.label}>Local</Text><View style={styles.options}>{rooms.map(loc => <Pressable key={loc.id} onPress={() => setLocationID(loc.id)} style={[styles.option, locationID === loc.id && styles.selected]}><Text style={[styles.optionText, locationID === loc.id && styles.selectedText]}>{loc.name}</Text></Pressable>)}</View></View>
     <View style={styles.block}><Text style={styles.label}>Recipiente (opcional)</Text><View style={styles.options}>{containers.map(loc => <Pressable key={loc.id} onPress={() => setContainerID(containerID === loc.id ? '' : loc.id)} style={[styles.option, containerID === loc.id && styles.selected]}><Text style={[styles.optionText, containerID === loc.id && styles.selectedText]}>{loc.name}</Text></Pressable>)}</View><Text style={styles.helper}>As etiquetas por item são opcionais. Você também pode identificar apenas um recipiente.</Text></View>
+    </> : <View style={styles.reviewCard}>
+      {photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="cover" /> : null}
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Item</Text><Text style={styles.reviewValue}>{name.trim()}</Text></View>
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Categoria</Text><Text style={styles.reviewValue}>{category.trim() || 'Sem categoria'}</Text></View>
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Quantidade</Text><Text style={styles.reviewValue}>{quantity}</Text></View>
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Local</Text><Text style={styles.reviewValue}>{selectedLocation?.name || 'Sem local selecionado'}</Text></View>
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Recipiente</Text><Text style={styles.reviewValue}>{selectedContainer?.name || 'Nenhum'}</Text></View>
+      {!photoDataURL ? <Text style={styles.helper}>Sem foto</Text> : null}
+    </View>}
     {error ? <Text style={styles.error}>{error}</Text> : null}
-    <Action label={saving ? 'Salvando…' : 'Cadastrar item'} disabled={saving} onPress={() => void save()} />
+    {reviewing ? <>
+      <Action label="Editar informações" secondary disabled={saving} onPress={() => { setError(''); setReviewing(false); }} />
+      <Action label={saving ? 'Salvando…' : 'Confirmar cadastro'} disabled={saving} onPress={() => void save()} />
+    </> : <Action label="Revisar cadastro" onPress={review} />}
   </Page>;
 }
-const styles = StyleSheet.create({ block: { gap: 9 }, label: { color: theme.ink, fontSize: 13, fontWeight: '700' }, preview: { width: '100%', height: 220, borderRadius: 14, backgroundColor: theme.pale }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, option: { borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 }, selected: { backgroundColor: theme.ink, borderColor: theme.ink }, optionText: { color: theme.ink, fontSize: 13 }, selectedText: { color: '#FFF', fontWeight: '700' }, helper: { color: theme.muted, fontSize: 12, lineHeight: 17 }, error: { color: '#A32F21' } });
+const styles = StyleSheet.create({ block: { gap: 9 }, label: { color: theme.ink, fontSize: 13, fontWeight: '700' }, preview: { width: '100%', height: 220, borderRadius: 14, backgroundColor: theme.pale }, reviewCard: { gap: 14, padding: 16, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 17 }, reviewRow: { gap: 4 }, reviewLabel: { color: theme.muted, fontSize: 12 }, reviewValue: { color: theme.ink, fontSize: 15, fontWeight: '700' }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, option: { borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 }, selected: { backgroundColor: theme.ink, borderColor: theme.ink }, optionText: { color: theme.ink, fontSize: 13 }, selectedText: { color: '#FFF', fontWeight: '700' }, helper: { color: theme.muted, fontSize: 12, lineHeight: 17 }, error: { color: '#A32F21' } });

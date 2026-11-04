@@ -44,6 +44,7 @@ export default function HomeScreen() {
               <Action label="Cadastrar item" secondary onPress={() => router.push('/items/new')} />
               <Action label="Ler QR para empréstimo" secondary onPress={() => router.push('/scan')} />
               <Action label="Meus pedidos" secondary onPress={() => router.push('/requests')} />
+              <Action label="Notificações" secondary onPress={() => router.push('/notifications' as never)} />
               {workspaces.length > 1 ? <Action label="Trocar espaço" secondary onPress={() => setTenant(null)} /> : null}
             </View>
             </> : <View style={styles.workspacePicker}>

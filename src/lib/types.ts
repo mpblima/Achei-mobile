@@ -15,6 +15,8 @@ export type InventoryItem = {
   category: string;
   location: string;
   container: string;
+  location_id?: string;
+  container_id?: string;
   code: string;
   quantity: number;
   available_quantity: number;
