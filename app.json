@@ -2,7 +2,7 @@
   "expo": {
     "name": "Achei",
     "slug": "achei-mobile",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/achei-icon.png",
     "scheme": "achei",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "tech.praesens.achei",
-      "versionCode": 9,
+      "versionCode": 10,
       "adaptiveIcon": {
         "backgroundColor": "#4A1B0C",
         "foregroundImage": "./assets/images/achei-icon.png"

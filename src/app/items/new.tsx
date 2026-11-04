@@ -23,6 +23,7 @@ export default function NewItemScreen() {
   const { token, tenant } = useMobileSession();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [locations, setLocations] = useState<InventoryLocation[]>([]);
   const [locationID, setLocationID] = useState('');
@@ -73,7 +74,7 @@ export default function NewItemScreen() {
     if (!name.trim() || !Number.isInteger(amount) || amount < 1) { setError('Informe o nome e uma quantidade inteira válida.'); return; }
     setSaving(true); setError('');
     try {
-      const item = await apiRequest<{ id: string }>('/items', token, tenant?.id, { method: 'POST', body: JSON.stringify({ name: name.trim(), category: category.trim(), quantity: amount, location_id: locationID || undefined, container_id: containerID || undefined }) });
+      const item = await apiRequest<{ id: string }>('/items', token, tenant?.id, { method: 'POST', body: JSON.stringify({ name: name.trim(), category: category.trim(), description: description.trim(), quantity: amount, location_id: locationID || undefined, container_id: containerID || undefined }) });
       if (photoDataURL) {
         try { await apiRequest(`/items/${item.id}/photos`, token, tenant?.id, { method: 'POST', body: JSON.stringify({ data_url: photoDataURL }) }); }
         catch { Alert.alert('Item cadastrado', 'O item foi salvo, mas a foto não foi enviada. Você pode adicionar a foto depois pelo Achei Web.'); router.replace('/items'); return; }
@@ -95,6 +96,7 @@ export default function NewItemScreen() {
     {!reviewing ? <>
     <Field label="Nome do item" value={name} onChangeText={setName} placeholder="Ex.: Copos de vidro" />
     <Field label="Categoria" value={category} onChangeText={setCategory} placeholder="Ex.: Cozinha" />
+    <Field label="Descrição (opcional)" value={description} onChangeText={setDescription} placeholder="Detalhes, estado de conservação, medidas…" multiline />
     <Field label="Quantidade" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="1" />
     <View style={styles.block}><Text style={styles.label}>Foto do item (opcional)</Text>{photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="contain" /> : null}<Text style={styles.helper}>Ajuste o zoom e escolha o enquadramento antes de usar a foto.</Text><Action label={photoDataURL ? 'Tirar outra foto' : 'Tirar foto com a câmera'} onPress={() => void takePhoto()} secondary /><Action label="Escolher foto da galeria" onPress={() => void choosePhoto()} secondary /></View>
     <View style={styles.block}><Text style={styles.label}>Local</Text><View style={styles.options}>{rooms.map(loc => <Pressable key={loc.id} onPress={() => setLocationID(loc.id)} style={[styles.option, locationID === loc.id && styles.selected]}><Text style={[styles.optionText, locationID === loc.id && styles.selectedText]}>{loc.name}</Text></Pressable>)}</View></View>
@@ -103,6 +105,7 @@ export default function NewItemScreen() {
       {photoDataURL ? <Image source={{ uri: photoDataURL }} style={styles.preview} resizeMode="cover" /> : null}
       <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Item</Text><Text style={styles.reviewValue}>{name.trim()}</Text></View>
       <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Categoria</Text><Text style={styles.reviewValue}>{category.trim() || 'Sem categoria'}</Text></View>
+      <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Descrição</Text><Text style={styles.reviewValue}>{description.trim() || 'Sem descrição cadastrada.'}</Text></View>
       <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Quantidade</Text><Text style={styles.reviewValue}>{quantity}</Text></View>
       <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Local</Text><Text style={styles.reviewValue}>{selectedLocation?.name || 'Sem local selecionado'}</Text></View>
       <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Recipiente</Text><Text style={styles.reviewValue}>{selectedContainer?.name || 'Nenhum'}</Text></View>

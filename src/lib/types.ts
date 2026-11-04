@@ -13,6 +13,7 @@ export type InventoryItem = {
   id: string;
   name: string;
   category: string;
+  description?: string;
   location: string;
   container: string;
   location_id?: string;
