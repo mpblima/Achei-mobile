@@ -2,7 +2,7 @@ export type Tenant = {
   id: string;
   name: string;
   type: 'personal' | 'business';
-  role: 'admin' | 'member';
+  role: 'admin' | 'collaborator' | 'reader';
   brand_name?: string;
   brand_logo_url?: string;
   brand_primary_color?: string;
@@ -23,7 +23,10 @@ export type InventoryItem = {
   loaned_quantity: number;
   pending_loan_quantity: number;
   status: string;
+  label_issued: boolean;
 };
+
+export type ItemPhoto = { id: string; data_url: string };
 
 export type InventoryLocation = {
   id: string;
@@ -36,10 +39,14 @@ export type InventoryLocation = {
 
 export type LoanRequest = {
   id: string;
+  item_id?: string;
   item: string;
   item_code: string;
+  requester_user_id: string;
+  requester_name: string;
   quantity: number;
   due: string;
+  label_issued: boolean;
   status: 'pending' | 'approved' | 'rejected';
   rejection_reason?: string;
 };

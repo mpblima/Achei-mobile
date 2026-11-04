@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Action, Page } from '@/components/MobileUI';
 import { apiRequest } from '@/lib/api';
 import { useMobileSession } from '@/lib/session';
 import { theme } from '@/lib/theme';
 import { printInventoryLabel } from '@/lib/printLabel';
-import type { InventoryItem } from '@/lib/types';
+import type { InventoryItem, ItemPhoto } from '@/lib/types';
 
 export default function ItemDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,6 +17,7 @@ export default function ItemDetailsScreen() {
   const [quantity, setQuantity] = useState('1');
   const [saving, setSaving] = useState(false);
   const [item, setItem] = useState<InventoryItem | null>(null);
+  const [photos, setPhotos] = useState<ItemPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   useFocusEffect(useCallback(() => {
@@ -24,7 +25,7 @@ export default function ItemDetailsScreen() {
     if (!token || !id) return () => { active = false; };
     setLoading(true);
     void apiRequest<InventoryItem[]>('/items?include_archived=true', token, tenant?.id)
-      .then(items => { if (active) { const found=items.find(entry => entry.id === id) || null; setItem(found); if(found){setName(found.name);setCategory(found.category);setQuantity(String(found.quantity));} setError(''); } })
+      .then(async items => { if (active) { const found=items.find(entry => entry.id === id) || null; setItem(found); if(found){setName(found.name);setCategory(found.category);setQuantity(String(found.quantity)); const loaded=await apiRequest<ItemPhoto[]>(`/items/${found.id}/photos`,token,tenant?.id); if(active)setPhotos(Array.isArray(loaded)?loaded:[]);} setError(''); } })
       .catch(e => { if (active) setError(e instanceof Error ? e.message : 'Não foi possível carregar o item.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -39,6 +40,7 @@ export default function ItemDetailsScreen() {
     {!loading && !error && !item ? <Text style={styles.empty}>Este item não está disponível no espaço atual.</Text> : null}
     {item ? <View style={styles.card}>
       {editing ? <><TextInput style={styles.input} accessibilityLabel="Nome do item" value={name} onChangeText={setName} placeholder="Nome do item"/><TextInput style={styles.input} accessibilityLabel="Categoria" value={category} onChangeText={setCategory} placeholder="Categoria"/><TextInput style={styles.input} accessibilityLabel="Quantidade" value={quantity} onChangeText={setQuantity} keyboardType="number-pad" placeholder="Quantidade"/><Action label={saving?'Salvando…':'Salvar alteração'} onPress={()=>void saveItem()}/><Action label="Cancelar edição" secondary onPress={()=>setEditing(false)}/></> : <Text style={styles.name}>{item.name}</Text>}
+      {photos.length ? <View style={styles.photos}>{photos.map(photo => <Image key={photo.id} source={{uri:photo.data_url}} style={styles.photo} resizeMode="cover" accessibilityLabel={`Foto do item ${item.name}`} />)}</View> : <Text style={styles.photoEmpty}>Nenhuma foto cadastrada para este item.</Text>}
       <View style={styles.row}><Text style={styles.label}>Categoria</Text><Text style={styles.value}>{item.category || 'Sem categoria'}</Text></View>
       <View style={styles.row}><Text style={styles.label}>Local</Text><Text style={styles.value}>{item.location || 'Sem local'}</Text></View>
       <View style={styles.row}><Text style={styles.label}>Recipiente</Text><Text style={styles.value}>{item.container || 'Nenhum'}</Text></View>
@@ -47,7 +49,7 @@ export default function ItemDetailsScreen() {
     </View> : null}
     {item && !editing ? <Action label="Editar item" secondary onPress={()=>setEditing(true)} /> : null}
     {item && !editing && !archived ? <Action label="Arquivar item" secondary onPress={archiveItem} /> : null}
-    {item && !editing ? <Action label="Imprimir etiqueta" secondary onPress={() => void printInventoryLabel({ name: item.name, code: item.code, kind: 'ITEM', location: item.location, container: item.container }).catch(e => Alert.alert('Não foi possível imprimir', e instanceof Error ? e.message : 'Tente novamente.'))} /> : null}
+    {item && !editing ? <Action label={item.label_issued ? 'Reimprimir etiqueta · já emitida' : 'Imprimir etiqueta'} secondary onPress={() => void (async()=>{try{await printInventoryLabel({ name: item.name, code: item.code, kind: 'ITEM', location: item.location, container: item.container });await apiRequest(`/items/${item.id}/label-issued`,token!,tenant?.id,{method:'POST'});setItem({...item,label_issued:true});}catch(e){Alert.alert('Não foi possível imprimir',e instanceof Error?e.message:'Tente novamente.');}})()} /> : null}
     {item && !archived && !editing ? <Action label="Ler QR para solicitar empréstimo" secondary onPress={() => router.push('/scan')} /> : null}
   </Page>;
 }
@@ -55,6 +57,9 @@ export default function ItemDetailsScreen() {
 const styles = StyleSheet.create({
   card: { gap: 15, padding: 17, borderRadius: 17, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 },
   name: { color: theme.ink, fontSize: 19, fontWeight: '800' },
+  photos: { gap: 10 },
+  photo: { width: '100%', height: 230, borderRadius: 14, backgroundColor: theme.pale },
+  photoEmpty: { color: theme.muted, fontSize: 12 },
   input: { borderWidth: 1, borderColor: theme.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: theme.ink, backgroundColor: theme.background },
   row: { gap: 4 },
   label: { color: theme.muted, fontSize: 12 },
