@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Action, Field, Notice, Page } from '@/components/MobileUI';
@@ -19,6 +19,9 @@ export default function ScanScreen() {
   const [scannedCode, setScannedCode] = useState(params.code || '');
   const [quantity, setQuantity] = useState('1');
   const [due, setDue] = useState('');
+  const [borrowerName, setBorrowerName] = useState('');
+  const [borrowerContact, setBorrowerContact] = useState('');
+  const [isThirdParty, setIsThirdParty] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => { if (token) void apiRequest<InventoryItem[]>('/items', token, tenant?.id).then(setItems).catch(e => setError(e.message)); }, [token, tenant?.id]);
@@ -29,7 +32,7 @@ export default function ScanScreen() {
     if (!Number.isInteger(amount) || amount < 1 || amount > item.available_quantity) { setError(`Informe uma quantidade entre 1 e ${item.available_quantity}.`); return; }
     setSending(true); setError('');
     try {
-      await apiRequest('/loan-requests', token, tenant?.id, { method: 'POST', body: JSON.stringify({ item_code: item.code, quantity: amount, due: due.trim() }) });
+      await apiRequest('/loan-requests', token, tenant?.id, { method: 'POST', body: JSON.stringify({ item_code: item.code, quantity: amount, due: due.trim(), is_third_party: isThirdParty, borrower_name: borrowerName.trim(), borrower_contact: borrowerContact.trim() }) });
       Alert.alert('Pedido enviado', 'Um administrador precisa autorizar o empréstimo.');
       router.replace('/requests');
     } catch (e) {
@@ -37,13 +40,15 @@ export default function ScanScreen() {
       setError(e instanceof Error ? e.message : 'Não foi possível enviar o pedido.');
     } finally { setSending(false); }
   }
-  return <Page title="Retirar para empréstimo" subtitle="Leia o QR Code do item. A retirada só é concluída após aprovação do administrador.">
+  const availableItems = items.filter(entry => entry.available_quantity > 0);
+  return <Page title="Retirar para empréstimo" subtitle="Leia a etiqueta do item ou selecione um item sem etiqueta. A retirada só é concluída após aprovação do administrador.">
     {!scannedCode ? permission?.granted ? <View style={[styles.camera, { height: cameraSize }]}><CameraView style={StyleSheet.absoluteFill} facing="back" barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={({ data }) => setScannedCode(data)} /><View style={[styles.scanFrame, { width: scanFrameSize, height: scanFrameSize }]} /></View> : <View style={styles.permission}><Text style={styles.permissionText}>Precisamos da câmera para ler a etiqueta do item.</Text><Action label="Permitir câmera" onPress={() => void requestPermission()} /></View> : null}
+    {!scannedCode ? <View style={styles.card}><Text style={styles.name}>Ou selecione um item sem etiqueta</Text>{availableItems.map(entry => <Action key={entry.id} label={`${entry.name} · ${entry.available_quantity} disponíveis`} secondary onPress={() => setScannedCode(entry.code)} />)}</View> : null}
     {scannedCode ? <><Notice>Etiqueta lida: {scannedCode}</Notice>{item ? <View style={styles.card}><Text style={styles.name}>{item.name}</Text><Text style={styles.meta}>{item.category || 'Sem categoria'} · {item.location}{item.container ? ` · ${item.container}` : ''}</Text><Text style={styles.stock}>{item.available_quantity} unidades disponíveis</Text></View> : <Notice>Não encontrei este código nos itens que você pode acessar. Confira a etiqueta e tente novamente.</Notice>}
-      {item ? <><Field label="Quantidade para empréstimo" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="1" /><Field label="Data de devolução (opcional)" value={due} onChangeText={setDue} placeholder="AAAA-MM-DD" /><Action label={sending ? 'Enviando…' : 'Solicitar autorização'} disabled={sending || item.available_quantity < 1} onPress={() => void submit()} /></> : null}
+      {item ? <><Field label="Quantidade para empréstimo" value={quantity} onChangeText={setQuantity} keyboardType="numeric" placeholder="1" /><Field label="Data de devolução (opcional)" value={due} onChangeText={setDue} placeholder="AAAA-MM-DD" />{tenant?.type === 'personal' ? <><View style={styles.thirdPartyToggle}><Text style={styles.permissionText}>Empréstimo para terceiro</Text><Switch value={isThirdParty} onValueChange={setIsThirdParty} trackColor={{ true: theme.accent }} /></View><Text style={styles.permissionText}>{isThirdParty ? 'Você será registrado como responsável pela saída.' : 'O empréstimo será registrado para você.'}</Text>{isThirdParty ? <><Field label="Nome da pessoa que receberá o item" value={borrowerName} onChangeText={setBorrowerName} placeholder="Nome completo" /><Field label="Contato da pessoa que receberá o item" value={borrowerContact} onChangeText={setBorrowerContact} placeholder="Telefone ou e-mail" /></> : null}</> : tenant?.type === 'business' ? <Text style={styles.permissionText}>A saída será registrada para você. Em espaços empresariais, não é permitido emprestar para terceiros.</Text> : null}<Action label={sending ? 'Enviando…' : 'Solicitar autorização'} disabled={sending || item.available_quantity < 1 || (tenant?.type === 'personal' && isThirdParty && (!borrowerName.trim() || !borrowerContact.trim()))} onPress={() => void submit()} /></> : null}
       <Action label="Ler outro QR Code" secondary onPress={() => { setScannedCode(''); setError(''); }} />
     </> : null}
     {error ? <Text style={styles.error}>{error}</Text> : null}
   </Page>;
 }
-const styles = StyleSheet.create({ camera: { overflow: 'hidden', borderRadius: 22, backgroundColor: '#21150F', alignItems: 'center', justifyContent: 'center' }, scanFrame: { borderWidth: 3, borderColor: '#FFF', borderRadius: 26, backgroundColor: 'transparent' }, permission: { gap: 14, padding: 20, backgroundColor: theme.surface, borderRadius: 18 }, permissionText: { color: theme.ink, fontSize: 15, lineHeight: 21 }, card: { padding: 17, borderRadius: 17, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, gap: 6 }, name: { color: theme.ink, fontSize: 17, fontWeight: '800' }, meta: { color: theme.muted, fontSize: 13 }, stock: { color: theme.success, fontSize: 13, fontWeight: '700' }, error: { color: '#A32F21' } });
+const styles = StyleSheet.create({ camera: { overflow: 'hidden', borderRadius: 22, backgroundColor: '#21150F', alignItems: 'center', justifyContent: 'center' }, scanFrame: { borderWidth: 3, borderColor: '#FFF', borderRadius: 26, backgroundColor: 'transparent' }, permission: { gap: 14, padding: 20, backgroundColor: theme.surface, borderRadius: 18 }, permissionText: { color: theme.ink, fontSize: 15, lineHeight: 21 }, thirdPartyToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }, card: { padding: 17, borderRadius: 17, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, gap: 6 }, name: { color: theme.ink, fontSize: 17, fontWeight: '800' }, meta: { color: theme.muted, fontSize: 13 }, stock: { color: theme.success, fontSize: 13, fontWeight: '700' }, error: { color: '#A32F21' } });

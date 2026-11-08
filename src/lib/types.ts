@@ -14,6 +14,7 @@ export type InventoryItem = {
   name: string;
   category: string;
   description?: string;
+  notes?: string;
   location: string;
   container: string;
   location_id?: string;
@@ -45,6 +46,11 @@ export type LoanRequest = {
   item_code: string;
   requester_user_id: string;
   requester_name: string;
+  requester_qr_code?: string;
+  responsible_name?: string;
+  borrower_name?: string;
+  borrower_contact?: string;
+  is_third_party?: boolean;
   quantity: number;
   due: string;
   label_issued: boolean;
@@ -56,4 +62,7 @@ export type MemberProfile = {
   full_name: string;
   phone: string;
   avatar_url: string;
+  email?: string;
+  contact_data?: Record<string, string>;
+  custom_data?: Record<string, string>;
 };

@@ -1,17 +1,25 @@
 import { ActivityIndicator, Alert, Image, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { useAuth } from '@clerk/expo';
 import { Action, Notice } from '@/components/MobileUI';
 import { AuthActions } from '../components/AuthActions';
 import { useMobileSession } from '@/lib/session';
 import { theme, useBrandColors } from '@/lib/theme';
+import { apiRequest } from '@/lib/api';
 
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
   const { isSignedIn, signOut } = useAuth();
-  const { email, imageUrl, tenant, tenantError, workspaces, workspacesLoaded, setTenant } = useMobileSession();
+  const { token, email, imageUrl, tenant, tenantError, workspaces, workspacesLoaded, setTenant } = useMobileSession();
   const brand = useBrandColors();
   const horizontalPadding = width < 360 ? 16 : width < 600 ? 22 : 32;
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (tenant && token) void apiRequest<{profile_complete:boolean}>('/me', token, tenant.id).then(result => { if(active&&!result.profile_complete) router.replace('/profile'); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [tenant, token]));
 
   async function logOut() {
     try {
