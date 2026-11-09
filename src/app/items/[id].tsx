@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import * as QRCode from 'qrcode';
 import { Action, Field, Page } from '@/components/MobileUI';
 import { apiRequest } from '@/lib/api';
 import { useMobileSession } from '@/lib/session';
@@ -19,6 +20,7 @@ export default function ItemDetailsScreen() {
   const [quantity, setQuantity] = useState('1');
   const [saving, setSaving] = useState(false);
   const [item, setItem] = useState<InventoryItem | null>(null);
+  const [itemQR, setItemQR] = useState<{code:string;data:string}|null>(null);
   const [photos, setPhotos] = useState<ItemPhoto[]>([]);
   const [history, setHistory] = useState<{id:string;kind:string;title:string;detail:string;occurred_at:string;actor:string}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,14 @@ export default function ItemDetailsScreen() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id, token, tenant?.id]));
+  useEffect(() => {
+    let active = true;
+    if (!item?.code) return () => { active = false; };
+    void QRCode.toDataURL(item.code, { width: 240, margin: 2, errorCorrectionLevel: 'M' })
+      .then(data => { if (active) setItemQR({code:item.code,data}); })
+      .catch(() => { if (active) setItemQR(null); });
+    return () => { active = false; };
+  }, [item?.code]);
   const archived = item?.status === 'Arquivado' || item?.status === 'archived';
   const saveItem = async () => { if(!token||!item)return; const amount=Number(quantity); if(!name.trim()||!Number.isInteger(amount)||amount<1){Alert.alert('Confira os dados','Informe nome e quantidade válida.');return;} setSaving(true); try { const result=await apiRequest<{status:string}>(`/items/${item.id}`,token,tenant?.id,{method:'PUT',body:JSON.stringify({name:name.trim(),category,description:description.trim(),notes:notes.trim(),quantity:amount,location_id:item.location_id||'',container_id:item.container_id||''})}); if(result.status!=='pending')setItem({...item,name:name.trim(),category,description:description.trim(),notes:notes.trim(),quantity:amount}); setEditing(false); Alert.alert(result.status==='pending'?'Solicitação enviada':'Item atualizado',result.status==='pending'?'Um administrador precisa aprovar a alteração.':'As informações foram salvas.'); } catch(e){Alert.alert('Não foi possível salvar',e instanceof Error?e.message:'Tente novamente.');} finally{setSaving(false);} };
   const archiveItem = () => { if(!token||!item)return; Alert.alert('Arquivar item?', 'O histórico de movimentações, empréstimos e vendas será preservado.', [{text:'Cancelar',style:'cancel'},{text:'Arquivar',style:'destructive',onPress:async()=>{try{const result=await apiRequest<{status:string}>('/items/'+item.id,token,tenant?.id,{method:'DELETE'});Alert.alert(result.status==='pending'?'Solicitação enviada':'Item arquivado',result.status==='pending'?'Um administrador precisa aprovar.':'O item foi movido para o arquivo morto.');router.back();}catch(e){Alert.alert('Não foi possível arquivar',e instanceof Error?e.message:'Tente novamente.');}}}]); };
@@ -50,6 +60,10 @@ export default function ItemDetailsScreen() {
       <View style={styles.row}><Text style={styles.label}>Anotações</Text><Text style={styles.value}>{item.notes?.trim() || 'Sem anotações cadastradas.'}</Text></View>
       <View style={styles.row}><Text style={styles.label}>Local</Text><Text style={styles.value}>{item.location || 'Sem local'}</Text></View>
       <View style={styles.row}><Text style={styles.label}>Recipiente</Text><Text style={styles.value}>{item.container || 'Nenhum'}</Text></View>
+      <View style={styles.itemLabel} accessibilityLabel="Etiqueta QR do item">
+        <View style={styles.itemLabelCopy}><Text style={styles.labelBrand}>a. achei</Text><Text style={styles.labelKind}>ITEM</Text><Text style={styles.itemLabelName}>{item.name}</Text><Text style={styles.itemLabelLocation}>{item.location || 'Sem local'} · {item.container || 'Nenhum'}</Text><Text style={styles.itemLabelCode}>{item.code}</Text></View>
+        {itemQR?.code === item.code ? <Image source={{uri:itemQR.data}} style={styles.itemQR} accessibilityLabel={`QR da etiqueta ${item.code}`} /> : <ActivityIndicator color={theme.accent} />}
+      </View>
       <View style={styles.row}><Text style={styles.label}>Quantidade disponível</Text><Text style={styles.value}>{item.available_quantity} de {item.quantity}</Text></View>
       {archived ? <Text style={styles.archived}>Item arquivado</Text> : null}
     </View> : null}
@@ -72,6 +86,14 @@ const styles = StyleSheet.create({
   row: { gap: 4 },
   label: { color: theme.muted, fontSize: 12 },
   value: { color: theme.ink, fontSize: 15, fontWeight: '600' },
+  itemLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 13, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.border, borderRadius: 12, backgroundColor: '#FFFFFF' },
+  itemLabelCopy: { flex: 1, minWidth: 0, gap: 5 },
+  labelBrand: { color: theme.ink, fontSize: 12, fontWeight: '800' },
+  labelKind: { color: theme.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  itemLabelName: { color: theme.ink, fontSize: 15, fontWeight: '800' },
+  itemLabelLocation: { color: theme.muted, fontSize: 11 },
+  itemLabelCode: { color: theme.ink, fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
+  itemQR: { width: 96, height: 96, flexShrink: 0 },
   archived: { color: theme.muted, fontSize: 13, fontWeight: '700' },
   empty: { color: theme.muted, fontSize: 14 },
   error: { color: '#A32F21' },
